@@ -10,28 +10,27 @@
     input, button { padding: 8px; margin: 5px; }
     .option { margin: 10px 0; }
     a { text-decoration: none; margin-right: 10px; }
+    #log { margin-top: 20px; background: #f5f5f5; padding: 10px; font-size: 14px; border-left: 4px solid #999; }
   </style>
 </head>
 <body>
   <h1>好きな学長の曲は？</h1>
 
-  <div style="background:#f0f8ff; padding:10px; border-left:5px solid #00aaff; margin-bottom:20px;">
-    <h2>このサイトの使い方</h2>
-    <ul>
-      <li>好きな曲に「投票」ボタンで1票入れられます。</li>
-      <li>「新しい曲を追加」フォームから、曲名とリンクを入力して新しく候補を追加できます。</li>
-      <li>※1人1回までの投票制限があります（ブラウザ単位）。</li>
-    </ul>
-  </div>
-
-  <div id="options"></div>
+  <div id="log">ログ：</div>
 
   <h3>新しい曲を追加</h3>
   <input type="text" id="songName" placeholder="曲名" />
   <input type="url" id="songUrl" placeholder="リンク（https://〜）" />
   <button onclick="addOption()">追加</button>
 
+  <div id="options"></div>
+
   <script>
+    const log = (msg) => {
+      document.getElementById("log").innerText += "\n" + msg;
+      console.log(msg);
+    };
+
     const firebaseConfig = {
       apiKey: "AIzaSyCFpBVVdN_dLLCq45yQxxxxxxx",
       authDomain: "gakucho-vote.firebaseapp.com",
@@ -43,7 +42,6 @@
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
-
     const optionsDiv = document.getElementById("options");
 
     function hasVoted() {
@@ -55,9 +53,11 @@
     }
 
     function loadVotes() {
+      log("loadVotes 実行中...");
       db.ref("songs").on("value", (snapshot) => {
         const data = snapshot.val() || {};
         optionsDiv.innerHTML = "";
+        log("データ取得: " + JSON.stringify(data));
 
         Object.entries(data)
           .sort((a, b) => (b[1].votes || 0) - (a[1].votes || 0))
@@ -84,6 +84,8 @@
 
             optionsDiv.appendChild(wrapper);
           });
+      }, (error) => {
+        log("読み込みエラー: " + error.message);
       });
     }
 
@@ -92,19 +94,29 @@
         alert("すでに投票済みです！");
         return;
       }
-      db.ref("songs/" + key + "/votes").set(currentVotes + 1);
-      markVoted();
-      alert("投票ありがとうございます！");
+      db.ref("songs/" + key + "/votes").set(currentVotes + 1)
+        .then(() => {
+          log(`投票成功: ${key}`);
+          markVoted();
+        })
+        .catch((err) => log("投票エラー: " + err.message));
     }
 
     function addOption() {
       const name = document.getElementById("songName").value.trim();
       const url = document.getElementById("songUrl").value.trim();
-      if (!name || !url) return alert("曲名とリンクを両方入力してください");
+      if (!name || !url) {
+        alert("曲名とリンクを両方入力してください");
+        return;
+      }
 
-      const key = name.replace(/[.#$]/g, "_");
-      db.ref("songs/" + key).set({ name, url, votes: 1 });
-      markVoted();
+      const key = name.replace(/[.#$\[\]]/g, "_");
+      db.ref("songs/" + key).set({ name, url, votes: 1 })
+        .then(() => {
+          log(`追加成功: ${name}`);
+          markVoted();
+        })
+        .catch((err) => log("追加エラー: " + err.message));
 
       document.getElementById("songName").value = "";
       document.getElementById("songUrl").value = "";
