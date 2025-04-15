@@ -172,20 +172,25 @@
         return;
       }
 
-      // 自分の前の投票先から票を減らす（安全に）
+      // 自分の前の投票先から -1
       if (oldKey && oldKey !== newKey) {
         db.ref("songs/" + oldKey + "/votes").transaction((currentVotes) => {
           return Math.max(0, (currentVotes || 1) - 1);
         });
       }
 
-      // 新しい投票先に票を加える（安全に）
+      // 新しい投票先に +1
       db.ref("songs/" + newKey + "/votes").transaction((currentVotes) => {
         return (currentVotes || 0) + 1;
       });
 
       setVotedKey(newKey);
       showMessage("投票を更新しました！");
+
+      // 表示を少し後に更新（順位変動に対応）
+      setTimeout(() => {
+        loadVotes();
+      }, 500);
     }
 
     function addOption() {
