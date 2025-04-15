@@ -19,7 +19,7 @@
     <h2>このサイトの使い方</h2>
     <ul>
       <li>好きな曲に「投票」ボタンで1票入れられます。</li>
-      <li><strong>「新しい曲を追加」</strong>フォームから、曲名とリンクを入力して新しく候補を追加できます。<br><span style="color:red;">※追加と同時に1票が投じられます。</span></li>
+      <li><strong>「新しい曲を追加」</strong>フォームから、曲名とリンクを入力して新しく候補を追加できます。<br><span style="color:red;">※追加しただけでは投票されません。</span></li>
       <li>※投票先は<strong>何度でも自由に変更可能</strong>です（1人1票は維持）</li>
     </ul>
   </div>
@@ -98,13 +98,11 @@
     function vote(newKey, newVotes) {
       const oldKey = getVotedKey();
       if (oldKey && oldKey !== newKey) {
-        // 前の投票先からマイナス1票
         db.ref("songs/" + oldKey + "/votes").get().then((snap) => {
           const prev = snap.val()?.votes || 1;
           db.ref("songs/" + oldKey + "/votes").set(Math.max(0, prev - 1));
         });
       }
-      // 新しい投票先にプラス1票
       db.ref("songs/" + newKey + "/votes").set(newVotes + 1);
       setVotedKey(newKey);
       alert("投票を更新しました！");
@@ -120,8 +118,7 @@
       const finalName = name || (url.includes("suno.ai") ? "Sunoの曲" : "タイトルなし");
       const key = finalName.replace(/[.#$\[\]]/g, "_");
 
-      db.ref("songs/" + key).set({ name: finalName, url, votes: 1 });
-      setVotedKey(key);
+      db.ref("songs/" + key).set({ name: finalName, url, votes: 0 });
 
       nameInput.value = "";
       urlInput.value = "";
