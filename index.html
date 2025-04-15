@@ -172,12 +172,14 @@
         return;
       }
 
+      // 自分の前の投票先から票を減らす（安全に）
       if (oldKey && oldKey !== newKey) {
         db.ref("songs/" + oldKey + "/votes").transaction((currentVotes) => {
           return Math.max(0, (currentVotes || 1) - 1);
         });
       }
 
+      // 新しい投票先に票を加える（安全に）
       db.ref("songs/" + newKey + "/votes").transaction((currentVotes) => {
         return (currentVotes || 0) + 1;
       });
