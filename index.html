@@ -20,7 +20,7 @@
     <ul>
       <li>好きな曲に「投票」ボタンで1票入れられます。</li>
       <li><strong>「新しい曲を追加」</strong>フォームから、曲名とリンクを入力して新しく候補を追加できます。<br><span style="color:red;">※追加と同時に1票が投じられます。</span></li>
-      <li>※1人1票までですが、<strong>後から投票先を変更できます。</strong></li>
+      <li>※投票先は<strong>何度でも自由に変更可能</strong>です（1人1票は維持）</li>
     </ul>
   </div>
 
@@ -51,10 +51,6 @@
 
     function setVotedKey(key) {
       localStorage.setItem("votedKey", key);
-    }
-
-    function clearVotedKey() {
-      localStorage.removeItem("votedKey");
     }
 
     function loadVotes() {
@@ -89,8 +85,8 @@
               wrapper.appendChild(msg);
             } else {
               const btn = document.createElement("button");
-              btn.textContent = votedKey ? "🔁 この曲に投票を変更" : `投票 (${value.votes || 0}票)`;
-              btn.onclick = () => vote(key, value.votes || 0, votedKey);
+              btn.textContent = "🔁 この曲に投票する";
+              btn.onclick = () => vote(key, value.votes || 0);
               wrapper.appendChild(btn);
             }
 
@@ -99,15 +95,16 @@
       });
     }
 
-    function vote(newKey, newVotes, oldKey) {
-      if (oldKey) {
-        // 旧投票先から1票減らす
+    function vote(newKey, newVotes) {
+      const oldKey = getVotedKey();
+      if (oldKey && oldKey !== newKey) {
+        // 前の投票先からマイナス1票
         db.ref("songs/" + oldKey + "/votes").get().then((snap) => {
           const prev = snap.val()?.votes || 1;
           db.ref("songs/" + oldKey + "/votes").set(Math.max(0, prev - 1));
         });
       }
-      // 新投票先に1票加える
+      // 新しい投票先にプラス1票
       db.ref("songs/" + newKey + "/votes").set(newVotes + 1);
       setVotedKey(newKey);
       alert("投票を更新しました！");
