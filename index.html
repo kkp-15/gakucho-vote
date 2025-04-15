@@ -19,8 +19,8 @@
     <h2>このサイトの使い方</h2>
     <ul>
       <li>好きな曲に「投票」ボタンで1票入れられます。</li>
-      <li>「新しい曲を追加」フォームから、曲名とリンクを入力して新しく候補を追加できます。</li>
-      <li>※1人1回までの投票制限があります（ブラウザ単位）。</li>
+      <li><strong>「新しい曲を追加」</strong>フォームから、曲名とリンクを入力して新しく候補を追加できます。<br><span style="color:red;">※追加と同時に1票が投じられます。</span></li>
+      <li>※1人1票までですが、<strong>後から投票先を変更できます。</strong></li>
     </ul>
   </div>
 
@@ -45,18 +45,23 @@
     const db = firebase.database();
     const optionsDiv = document.getElementById("options");
 
-    function hasVoted() {
-      return localStorage.getItem("hasVoted") === "true";
+    function getVotedKey() {
+      return localStorage.getItem("votedKey");
     }
 
-    function markVoted() {
-      localStorage.setItem("hasVoted", "true");
+    function setVotedKey(key) {
+      localStorage.setItem("votedKey", key);
+    }
+
+    function clearVotedKey() {
+      localStorage.removeItem("votedKey");
     }
 
     function loadVotes() {
       db.ref("songs").on("value", (snapshot) => {
         const data = snapshot.val() || {};
         optionsDiv.innerHTML = "";
+        const votedKey = getVotedKey();
 
         Object.entries(data)
           .sort((a, b) => (b[1].votes || 0) - (a[1].votes || 0))
@@ -76,37 +81,53 @@
             link.target = "_blank";
             wrapper.appendChild(link);
 
-            const btn = document.createElement("button");
-            btn.textContent = `投票 (${value.votes || 0}票)`;
-            btn.onclick = () => vote(key, value.votes || 0);
-            if (!hasVoted()) wrapper.appendChild(btn);
+            if (votedKey === key) {
+              const msg = document.createElement("span");
+              msg.textContent = " ✅ あなたの投票";
+              msg.style.color = "green";
+              msg.style.marginLeft = "10px";
+              wrapper.appendChild(msg);
+            } else {
+              const btn = document.createElement("button");
+              btn.textContent = votedKey ? "🔁 この曲に投票を変更" : `投票 (${value.votes || 0}票)`;
+              btn.onclick = () => vote(key, value.votes || 0, votedKey);
+              wrapper.appendChild(btn);
+            }
 
             optionsDiv.appendChild(wrapper);
           });
       });
     }
 
-    function vote(key, currentVotes) {
-      if (hasVoted()) {
-        alert("すでに投票済みです！");
-        return;
+    function vote(newKey, newVotes, oldKey) {
+      if (oldKey) {
+        // 旧投票先から1票減らす
+        db.ref("songs/" + oldKey + "/votes").get().then((snap) => {
+          const prev = snap.val()?.votes || 1;
+          db.ref("songs/" + oldKey + "/votes").set(Math.max(0, prev - 1));
+        });
       }
-      db.ref("songs/" + key + "/votes").set(currentVotes + 1);
-      markVoted();
-      alert("投票ありがとうございます！");
+      // 新投票先に1票加える
+      db.ref("songs/" + newKey + "/votes").set(newVotes + 1);
+      setVotedKey(newKey);
+      alert("投票を更新しました！");
     }
 
     function addOption() {
-      const name = document.getElementById("songName").value.trim();
-      const url = document.getElementById("songUrl").value.trim();
-      if (!name || !url) return alert("曲名とリンクを両方入力してください");
+      const nameInput = document.getElementById("songName");
+      const urlInput = document.getElementById("songUrl");
+      const name = nameInput.value.trim();
+      const url = urlInput.value.trim();
+      if (!url) return alert("リンクを入力してください");
 
-      const key = name.replace(/[.#$\[\]]/g, "_");
-      db.ref("songs/" + key).set({ name, url, votes: 1 });
-      markVoted();
+      const finalName = name || (url.includes("suno.ai") ? "Sunoの曲" : "タイトルなし");
+      const key = finalName.replace(/[.#$\[\]]/g, "_");
 
-      document.getElementById("songName").value = "";
-      document.getElementById("songUrl").value = "";
+      db.ref("songs/" + key).set({ name: finalName, url, votes: 1 });
+      setVotedKey(key);
+
+      nameInput.value = "";
+      urlInput.value = "";
     }
 
     loadVotes();
