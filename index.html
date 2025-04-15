@@ -8,8 +8,28 @@
   <style>
     body { font-family: sans-serif; padding: 20px; }
     input, button { padding: 8px; margin: 5px; }
-    .option { margin: 10px 0; }
-    a { text-decoration: none; margin-right: 10px; display: inline-block; margin-bottom: 4px; }
+    .option {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      padding: 8px 0;
+      border-bottom: 1px solid #ddd;
+      flex-wrap: wrap;
+    }
+    .option a {
+      flex: 1;
+      text-decoration: none;
+      font-weight: bold;
+      color: #333;
+    }
+    .votes {
+      min-width: 100px;
+      font-weight: bold;
+      color: #007acc;
+    }
+    .vote-button {
+      white-space: nowrap;
+    }
   </style>
 </head>
 <body>
@@ -65,36 +85,29 @@
             const wrapper = document.createElement("div");
             wrapper.className = "option";
 
-            const rankNum = index + 1;
-            const crown = rankNum === 1 ? "👑" : rankNum === 2 ? "🥈" : rankNum === 3 ? "🥉" : `${rankNum}.`;
-            const rank = document.createElement("span");
-            rank.textContent = `${crown} `;
-            wrapper.appendChild(rank);
+            const crown = index === 0 ? "👑" : index === 1 ? "🥈" : index === 2 ? "🥉" : `${index + 1}.`;
 
             const link = document.createElement("a");
             link.href = value.url;
-            link.textContent = value.name;
             link.target = "_blank";
+            link.textContent = `${crown} ${value.name}`;
             wrapper.appendChild(link);
 
-            // 得票数を目立たせて表示
             const voteCount = document.createElement("div");
-            voteCount.textContent = `🗳️ 得票数: ${value.votes || 0} 票`;
-            voteCount.style.fontWeight = "bold";
-            voteCount.style.color = "#007acc";
-            voteCount.style.margin = "5px 0";
+            voteCount.className = "votes";
+            voteCount.textContent = `🗳️ ${value.votes || 0} 票`;
             wrapper.appendChild(voteCount);
 
-            // 投票 or 自分の投票表示
             if (votedKey === key) {
               const msg = document.createElement("span");
               msg.textContent = "✅ あなたの投票";
               msg.style.color = "green";
-              msg.style.marginLeft = "10px";
+              msg.style.fontWeight = "bold";
               wrapper.appendChild(msg);
             } else {
               const btn = document.createElement("button");
-              btn.textContent = "🔁 この曲に投票する";
+              btn.className = "vote-button";
+              btn.textContent = "🔁 投票する";
               btn.onclick = () => vote(key, value.votes || 0);
               wrapper.appendChild(btn);
             }
