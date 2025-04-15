@@ -141,12 +141,22 @@
 
     function vote(newKey, newVotes) {
       const oldKey = getVotedKey();
+
+      // 再投票ガード（同じキーなら何もしない）
+      if (oldKey === newKey) {
+        alert("すでにこの曲に投票済みです！");
+        return;
+      }
+
+      // 古い投票を1票減らす（あれば）
       if (oldKey && oldKey !== newKey) {
         db.ref("songs/" + oldKey + "/votes").get().then((snap) => {
           const prev = snap.val()?.votes || 1;
           db.ref("songs/" + oldKey + "/votes").set(Math.max(0, prev - 1));
         });
       }
+
+      // 新しい曲に1票追加
       db.ref("songs/" + newKey + "/votes").set(newVotes + 1);
       setVotedKey(newKey);
       alert("投票を更新しました！");
@@ -160,7 +170,7 @@
       if (!url) return alert("リンクを入力してください");
 
       const finalName = name || (url.includes("suno.ai") ? "Sunoの曲" : "タイトルなし");
-      const key = finalName.replace(/[.#$\[\]]/g, "_");
+      const key = finalName.replace(/[.#$]/g, "_");
 
       db.ref("songs/" + key).set({ name: finalName, url, votes: 0 });
 
