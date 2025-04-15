@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>好きな学長の曲は？</title>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    input, button { padding: 8px; margin: 5px; }
+    .option { margin: 10px 0; }
+    a { text-decoration: none; margin-right: 10px; }
+  </style>
+</head>
+<body>
+  <h1>好きな学長の曲は？</h1>
+
+  <div style="background:#f0f8ff; padding:10px; border-left:5px solid #00aaff; margin-bottom:20px;">
+    <h2>このサイトの使い方</h2>
+    <ul>
+      <li>好きな曲に「投票」ボタンで1票入れられます。</li>
+      <li>「新しい曲を追加」フォームから、曲名とリンクを入力して新しく候補を追加できます。</li>
+      <li>※1人1回までの投票制限があります（ブラウザ単位）。</li>
+    </ul>
+  </div>
+
+  <div id="options"></div>
+
+  <h3>新しい曲を追加</h3>
+  <input type="text" id="songName" placeholder="曲名" />
+  <input type="url" id="songUrl" placeholder="リンク（https://〜）" />
+  <button onclick="addOption()">追加</button>
+
+  <script>
+    // Firebaseの設定（あなたのプロジェクト用に設定済み）
+    const firebaseConfig = {
+      apiKey: "AIzaSyCFpBVVdN_dLLCq45yQxxxxxxx",
+      authDomain: "gakucho-vote.firebaseapp.com",
+      databaseURL: "https://gakucho-vote-default-rtdb.firebaseio.com",
+      projectId: "gakucho-vote",
+      storageBucket: "gakucho-vote.appspot.com",
+      messagingSenderId: "163899893304",
+      appId: "1:163899893304:web:928b73xxxxxxxx"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    const optionsDiv = document.getElementById("options");
+
+    function hasVoted() {
+      return localStorage.getItem("hasVoted") === "true";
+    }
+
+    function markVoted() {
+      localStorage.setItem("hasVoted", "true");
+    }
+
+    function loadVotes() {
+      db.ref("songs").on("value", (snapshot) => {
+        const data = snapshot.val() || {};
+        optionsDiv.innerHTML = "";
+
+        Object.entries(data)
+          .sort((a, b) => (b[1].votes || 0) - (a[1].votes || 0))
+          .forEach(([key, value], index) => {
+            const wrapper = document.createElement("div");
+            wrapper.className = "option";
+
+            const rankNum = index + 1;
+            const crown = rankNum === 1 ? "👑" : rankNum === 2 ? "🥈" : rankNum === 3 ? "🥉" : `${rankNum}.`;
+            const rank = document.createElement("span");
+            rank.textContent = `${crown} `;
+            wrapper.appendChild(rank);
+
+            const link = document.createElement("a");
+            link.href = value.url;
+            link.textContent = value.name;
+            link.target = "_blank";
+            wrapper.appendChild(link);
+
+            const btn = document.createElement("button");
+            btn.textContent = `投票 (${value.votes || 0}票)`;
+            btn.onclick = () => vote(key, value.votes || 0);
+            if (!hasVoted()) wrapper.appendChild(btn);
+
+            optionsDiv.appendChild(wrapper);
+          });
+      });
+    }
+
+    function vote(key, currentVotes) {
+      if (hasVoted()) {
+        alert("すでに投票済みです！");
+        return;
+      }
+      db.ref("songs/" + key + "/votes").set(currentVotes + 1);
+      markVoted();
+      alert("投票ありがとうございます！");
+    }
+
+    function addOption() {
+      const name = document.getElementById("songName").value.trim();
+      const url = document.getElementById("songUrl").value.trim();
+      if (!name || !url) return alert("曲名とリンクを両方入力してください");
+
+      const key = name.replace(/[.#$]/g, "_");
+      db.ref("songs/" + key).set({ name, url, votes: 1 });
+      markVoted();
+
+      document.getElementById("songName").value = "";
+      document.getElementById("songUrl").value = "";
+    }
+
+    loadVotes();
+  </script>
+</body>
+</html>
