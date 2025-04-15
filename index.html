@@ -155,7 +155,7 @@
               const btn = document.createElement("button");
               btn.className = "vote-button";
               btn.textContent = "🔁 投票する";
-              btn.onclick = () => vote(key, value.votes || 0);
+              btn.onclick = () => vote(key);
               wrapper.appendChild(btn);
             }
 
@@ -164,7 +164,7 @@
       });
     }
 
-    function vote(newKey, newVotes) {
+    function vote(newKey) {
       const oldKey = getVotedKey();
 
       if (oldKey === newKey) {
@@ -173,13 +173,15 @@
       }
 
       if (oldKey && oldKey !== newKey) {
-        db.ref("songs/" + oldKey + "/votes").get().then((snap) => {
-          const prev = snap.val()?.votes || 1;
-          db.ref("songs/" + oldKey + "/votes").set(Math.max(0, prev - 1));
+        db.ref("songs/" + oldKey + "/votes").transaction((currentVotes) => {
+          return Math.max(0, (currentVotes || 1) - 1);
         });
       }
 
-      db.ref("songs/" + newKey + "/votes").set(newVotes + 1);
+      db.ref("songs/" + newKey + "/votes").transaction((currentVotes) => {
+        return (currentVotes || 0) + 1;
+      });
+
       setVotedKey(newKey);
       showMessage("投票を更新しました！");
     }
