@@ -52,6 +52,20 @@
       flex-shrink: 0;
       white-space: nowrap;
     }
+    #message {
+      display: none;
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #00c853;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-weight: bold;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+      z-index: 1000;
+    }
   </style>
 </head>
 <body>
@@ -73,6 +87,8 @@
   <input type="url" id="songUrl" placeholder="リンク（https://〜）" />
   <button onclick="addOption()">追加</button>
 
+  <div id="message"></div>
+
   <script>
     const firebaseConfig = {
       apiKey: "AIzaSyCFpBVVdN_dLLCq45yQxxxxxxx",
@@ -86,6 +102,15 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
     const optionsDiv = document.getElementById("options");
+
+    function showMessage(text) {
+      const msg = document.getElementById("message");
+      msg.textContent = text;
+      msg.style.display = "block";
+      setTimeout(() => {
+        msg.style.display = "none";
+      }, 2000);
+    }
 
     function getVotedKey() {
       return localStorage.getItem("votedKey");
@@ -142,13 +167,11 @@
     function vote(newKey, newVotes) {
       const oldKey = getVotedKey();
 
-      // 再投票ガード（同じキーなら何もしない）
       if (oldKey === newKey) {
-        alert("すでにこの曲に投票済みです！");
+        showMessage("すでにこの曲に投票済みです！");
         return;
       }
 
-      // 古い投票を1票減らす（あれば）
       if (oldKey && oldKey !== newKey) {
         db.ref("songs/" + oldKey + "/votes").get().then((snap) => {
           const prev = snap.val()?.votes || 1;
@@ -156,10 +179,9 @@
         });
       }
 
-      // 新しい曲に1票追加
       db.ref("songs/" + newKey + "/votes").set(newVotes + 1);
       setVotedKey(newKey);
-      alert("投票を更新しました！");
+      showMessage("投票を更新しました！");
     }
 
     function addOption() {
@@ -167,7 +189,7 @@
       const urlInput = document.getElementById("songUrl");
       const name = nameInput.value.trim();
       const url = urlInput.value.trim();
-      if (!url) return alert("リンクを入力してください");
+      if (!url) return showMessage("リンクを入力してください");
 
       const finalName = name || (url.includes("suno.ai") ? "Sunoの曲" : "タイトルなし");
       const key = finalName.replace(/[.#$]/g, "_");
@@ -176,6 +198,7 @@
 
       nameInput.value = "";
       urlInput.value = "";
+      showMessage("曲を追加しました！");
     }
 
     loadVotes();
