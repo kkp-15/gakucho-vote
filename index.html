@@ -1,152 +1,36 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-  <meta charset="UTF-8" />
-  <title>好きな🦁学長の曲は？</title>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
-  <style>
-    body { font-family: sans-serif; padding: 20px; }
-    input, button { padding: 8px; margin: 5px; }
-    .option {
-      display: flex;
-      align-items: center;
-      gap: 15px;
-      padding: 8px 0;
-      border-bottom: 1px solid #ddd;
-      flex-wrap: wrap;
-    }
-    .option a {
-      flex: 1;
-      text-decoration: none;
-      font-weight: bold;
-      color: #333;
-    }
-    .votes {
-      min-width: 100px;
-      font-weight: bold;
-      color: #007acc;
-    }
-    .vote-button {
-      white-space: nowrap;
-    }
-  </style>
-</head>
-<body>
-  <h1>好きな🦁学長の曲は？</h1>
-
-  <div style="background:#f0f8ff; padding:10px; border-left:5px solid #00aaff; margin-bottom:20px;">
-    <h2>このサイトの使い方</h2>
-    <ul>
-      <li>好きな曲に「投票」ボタンで1票入れられます。</li>
-      <li><strong>「新しい曲を追加」</strong>フォームから、曲名とリンクを入力して新しく候補を追加できます。<br><span style="color:red;">※追加しただけでは投票されません。</span></li>
-      <li>※投票先は<strong>何度でも自由に変更可能</strong>です（1人1票は維持）</li>
-    </ul>
-  </div>
-
-  <div id="options"></div>
-
-  <h3>新しい曲を追加</h3>
-  <input type="text" id="songName" placeholder="曲名" />
-  <input type="url" id="songUrl" placeholder="リンク（https://〜）" />
-  <button onclick="addOption()">追加</button>
-
-  <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyCFpBVVdN_dLLCq45yQxxxxxxx",
-      authDomain: "gakucho-vote.firebaseapp.com",
-      databaseURL: "https://gakucho-vote-default-rtdb.asia-southeast1.firebasedatabase.app",
-      projectId: "gakucho-vote",
-      storageBucket: "gakucho-vote.appspot.com",
-      messagingSenderId: "163899893304",
-      appId: "1:163899893304:web:928b73xxxxxxxx"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
-    const optionsDiv = document.getElementById("options");
-
-    function getVotedKey() {
-      return localStorage.getItem("votedKey");
-    }
-
-    function setVotedKey(key) {
-      localStorage.setItem("votedKey", key);
-    }
-
-    function loadVotes() {
-      db.ref("songs").on("value", (snapshot) => {
-        const data = snapshot.val() || {};
-        optionsDiv.innerHTML = "";
-        const votedKey = getVotedKey();
-
-        Object.entries(data)
-          .sort((a, b) => (b[1].votes || 0) - (a[1].votes || 0))
-          .forEach(([key, value], index) => {
-            const wrapper = document.createElement("div");
-            wrapper.className = "option";
-
-            const crown = index === 0 ? "👑" : index === 1 ? "🥈" : index === 2 ? "🥉" : `${index + 1}.`;
-
-            const link = document.createElement("a");
-            link.href = value.url;
-            link.target = "_blank";
-            link.textContent = `${crown} ${value.name}`;
-            wrapper.appendChild(link);
-
-            const voteCount = document.createElement("div");
-            voteCount.className = "votes";
-            voteCount.textContent = `🗳️ ${value.votes || 0} 票`;
-            wrapper.appendChild(voteCount);
-
-            if (votedKey === key) {
-              const msg = document.createElement("span");
-              msg.textContent = "✅ あなたの投票";
-              msg.style.color = "green";
-              msg.style.fontWeight = "bold";
-              wrapper.appendChild(msg);
-            } else {
-              const btn = document.createElement("button");
-              btn.className = "vote-button";
-              btn.textContent = "🔁 投票する";
-              btn.onclick = () => vote(key, value.votes || 0);
-              wrapper.appendChild(btn);
-            }
-
-            optionsDiv.appendChild(wrapper);
-          });
-      });
-    }
-
-    function vote(newKey, newVotes) {
-      const oldKey = getVotedKey();
-      if (oldKey && oldKey !== newKey) {
-        db.ref("songs/" + oldKey + "/votes").get().then((snap) => {
-          const prev = snap.val()?.votes || 1;
-          db.ref("songs/" + oldKey + "/votes").set(Math.max(0, prev - 1));
-        });
-      }
-      db.ref("songs/" + newKey + "/votes").set(newVotes + 1);
-      setVotedKey(newKey);
-      alert("投票を更新しました！");
-    }
-
-    function addOption() {
-      const nameInput = document.getElementById("songName");
-      const urlInput = document.getElementById("songUrl");
-      const name = nameInput.value.trim();
-      const url = urlInput.value.trim();
-      if (!url) return alert("リンクを入力してください");
-
-      const finalName = name || (url.includes("suno.ai") ? "Sunoの曲" : "タイトルなし");
-      const key = finalName.replace(/[.#$\[\]]/g, "_");
-
-      db.ref("songs/" + key).set({ name: finalName, url, votes: 0 });
-
-      nameInput.value = "";
-      urlInput.value = "";
-    }
-
-    loadVotes();
-  </script>
-</body>
-</html>
+<style>
+  body {
+    font-family: sans-serif;
+    padding: 20px;
+  }
+  input, button {
+    padding: 8px;
+    margin: 5px;
+  }
+  .option {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid #ddd;
+  }
+  .option a {
+    flex: 1 1 100%;
+    text-decoration: none;
+    font-weight: bold;
+    color: #333;
+    word-break: break-word;
+  }
+  .votes {
+    flex-shrink: 0;
+    font-weight: bold;
+    color: #007acc;
+    min-width: 90px;
+  }
+  .vote-button, .option span {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+</style>
